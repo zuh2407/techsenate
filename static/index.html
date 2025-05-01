@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>P2P Messaging Visualizer</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f7f9fc;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #2c3e50;
+    }
+
+    .input-section {
+      margin-bottom: 20px;
+    }
+
+    input, button {
+      padding: 10px;
+      margin: 5px;
+    }
+
+    #visualBox {
+      position: relative;
+      height: 100px;
+      margin: 30px 0;
+      border: 2px dashed #ccc;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 30px;
+    }
+
+    .node {
+      background: #3498db;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 10px;
+    }
+
+    .message-bubble {
+      position: absolute;
+      left: 100px;
+      top: 30px;
+      background: #27ae60;
+      color: white;
+      padding: 10px;
+      border-radius: 20px;
+      animation: moveRight 2s forwards;
+    }
+
+    @keyframes moveRight {
+      0% { left: 100px; }
+      100% { left: calc(100% - 150px); }
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      padding: 10px;
+      border: 1px solid #ccc;
+    }
+
+    th {
+      background: #2c3e50;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <h1>P2P Message Visualizer</h1>
+
+  <div class="input-section">
+    <input type="text" id="sender" placeholder="Sender">
+    <input type="text" id="receiver" placeholder="Receiver">
+    <input type="text" id="content" placeholder="Message">
+    <button onclick="sendMessage()">Send</button>
+  </div>
+
+  <div id="visualBox">
+    <div class="node">Sender Node</div>
+    <div class="node">Receiver Node</div>
+  </div>
+
+  <h2>Ledger</h2>
+  <table id="ledgerTable">
+    <thead>
+      <tr><th>Timestamp</th><th>Sender</th><th>Receiver</th><th>Message</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    async function sendMessage() {
+      const sender = document.getElementById('sender').value.trim();
+      const receiver = document.getElementById('receiver').value.trim();
+      const content = document.getElementById('content').value.trim();
+      if (!sender || !receiver || !content) return;
+
+      // Visual bubble animation
+      const bubble = document.createElement('div');
+      bubble.className = 'message-bubble';
+      bubble.textContent = '📨 ' + content;
+      document.getElementById('visualBox').appendChild(bubble);
+
+      // Wait for animation to complete (2s)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Remove bubble
+      bubble.remove();
+
+      // Send to backend
+      await fetch('/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sender, receiver, content })
+      });
+
+      // Update ledger table
+      loadMessages();
+
+      // Clear input
+      document.getElementById('content').value = '';
+    }
+
+    async function loadMessages() {
+      const res = await fetch('/messages');
+      const messages = await res.json();
+      const tbody = document.getElementById('ledgerTable').querySelector('tbody');
+      tbody.innerHTML = '';
+      messages.reverse().forEach(m => {
+        const row = `<tr><td>${m.timestamp}</td><td>${m.sender}</td><td>${m.receiver}</td><td>${m.content}</td></tr>`;
+        tbody.innerHTML += row;
+      });
+    }
+
+    loadMessages();
+  </script>
+</body>
+</html>
